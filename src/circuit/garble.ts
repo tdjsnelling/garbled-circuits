@@ -123,7 +123,10 @@ export function garbleTable(labelledTable: LabelledTable): GarbledTable {
   return garbledTable;
 }
 
-export function evalGarbledTable(garbledTable: GarbledTable, inputs: string[]) {
+export function evalGarbledTable(
+  garbledTable: GarbledTable,
+  inputs: string[],
+): string {
   for (const row of garbledTable) {
     const { encrypted, iv, tag } = row;
     try {
