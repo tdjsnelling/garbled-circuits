@@ -3,15 +3,15 @@ import * as ot from "./oblivious-transfer";
 import { getJwkInt } from "./utils";
 import { labelWires, garbleTable, evalGarbledTable } from "./circuit/garble";
 
-const { labels, labelledTable } = labelWires("and", ["A", "B"], "out");
+const { labels, labelledTable } = labelWires("not", ["A"], "out");
 
 const garbledTable = garbleTable(labelledTable);
 
 const a = 1;
 const b = 1;
-const result = evalGarbledTable(garbledTable, [labels["A"][a], labels["B"][b]]);
+const result = evalGarbledTable(garbledTable, [labels["A"][a]]);
 
-const out = 1;
+const out = 0;
 console.log(result === labels["out"][out], result, labels["out"][out]);
 
 // const { publicKey, privateKey } = generateKeyPairSync("rsa", {

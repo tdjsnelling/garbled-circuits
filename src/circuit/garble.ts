@@ -20,21 +20,23 @@ export function labelWires(
   outName: string,
   size: number = 256,
 ): { labels: Labels; labelledTable: LabelledTable } {
-  const inputValues: InputValue[][] = cartesianProduct(
+  const inputValues: InputValue[][] | InputValue[] = cartesianProduct(
     ...Array(inNames.length).fill(INPUT_VALUES),
   );
 
   const gate = gates[gateName] as Gate;
 
-  const truthTable = inputValues.reduce(
-    (table: InputValue[], input: InputValue[] | InputValue) => {
-      if (gate.length === 2) table.push(gate[input[0]][input[1]]);
-      else if (gate.length === 1) table.push(gate[0][input]);
+  const truthTable = inputValues.reduce((table: InputValue[], input) => {
+    if (gate.length === 2) {
+      const binaryInput = input as InputValue[];
+      table.push(gate[binaryInput[0]][binaryInput[1]]);
+    } else if (gate.length === 1) {
+      const unaryInput = input as InputValue;
+      table.push(gate[0][unaryInput]);
+    }
 
-      return table;
-    },
-    [],
-  );
+    return table;
+  }, []);
 
   const inputLabels = inNames.map(() => [
     randomBytes(size / 8).toString("hex"),
@@ -56,9 +58,15 @@ export function labelWires(
   const labelledTable = truthTable.map((outValue, i) => {
     const result = [];
 
-    if (gate.length === 2)
-      result.push(inputValues[i].map((inValue, j) => inputLabels[j][inValue]));
-    else if (gate.length === 1) result.push(inputLabels[0][inputValues[i]]);
+    if (gate.length === 2) {
+      const binaryInputValues = inputValues as InputValue[][];
+      result.push(
+        binaryInputValues[i].map((inValue, j) => inputLabels[j][inValue]),
+      );
+    } else if (gate.length === 1) {
+      const unaryInputValues = inputValues as InputValue[];
+      result.push(inputLabels[0][unaryInputValues[i]]);
+    }
 
     result.push(outputLabels[outValue]);
 
@@ -121,6 +129,8 @@ export function evalGarbledTable(garbledTable: GarbledTable, inputs: string[]) {
     try {
       const key = getCombinedKey(inputs);
       return decrypt(key, iv, tag, encrypted);
-    } catch (e) {}
+    } catch (e) {
+      continue;
+    }
   }
 }
