@@ -31,14 +31,14 @@ function modpow(a: bigint, b: bigint, n: bigint) {
 
 // https://en.wikipedia.org/wiki/Oblivious_transfer#1%E2%80%932_oblivious_transfer
 
-export function ot_send_1(nbits: number = 2048) {
+export function otSend1(nbits: number = 2048) {
   const x0 = bufferToBigInt(randomBytes(nbits / 8));
   const x1 = bufferToBigInt(randomBytes(nbits / 8));
 
   return { x0, x1 };
 }
 
-export function ot_send_2(
+export function otSend2(
   d: bigint,
   N: bigint,
   x0: bigint,
@@ -56,7 +56,7 @@ export function ot_send_2(
   return { m0k, m1k };
 }
 
-export function ot_recv_1(
+export function otRecv1(
   b: 0 | 1,
   e: bigint,
   N: bigint,
@@ -72,7 +72,7 @@ export function ot_recv_1(
   return { v, k };
 }
 
-export function ot_recv_2(
+export function otRecv2(
   b: 0 | 1,
   N: bigint,
   k: bigint,
