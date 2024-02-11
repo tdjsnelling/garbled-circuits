@@ -44,4 +44,4 @@ const result = evalGarbledTable(garbledTable, [aliceInputLabel, bobInputLabel]);
 
 // ALICE
 const out = labels["out"].indexOf(result);
-console.log(out); // -> Alice shares with Bob
+console.log("=>", out); // -> Alice shares with Bob

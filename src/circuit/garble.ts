@@ -7,12 +7,41 @@ import {
 import { gates, InputValue, GateName, Gate } from "./gates";
 import { cartesianProduct, secureShuffle } from "../utils";
 
+type Bit = InputValue;
 type Labels = { [key: string]: string[] };
 type LabelledTable = (string | string[])[][];
-type EncryptedRow = { encrypted: Buffer; iv: Buffer; tag: Buffer };
+type EncryptedRow = {
+  encrypted: Buffer;
+  iv: Buffer;
+  tag: Buffer;
+  label0lsb: Bit;
+  label1lsb: Bit;
+};
 type GarbledTable = EncryptedRow[];
 
 const INPUT_VALUES: InputValue[] = [0, 1];
+
+function getLeastSignificantBit(buffer: Buffer, index = 0): Bit {
+  const lastByte = buffer[buffer.byteLength - 1];
+  return ((lastByte >> index) & 1) as Bit;
+}
+
+// generate 2 random labels with different LSBs
+function generateLabelPair(size: number): string[] {
+  const l0 = randomBytes(size / 8);
+  const l1 = randomBytes(size / 8);
+
+  const lsb0 = getLeastSignificantBit(l0);
+  const lsb1 = getLeastSignificantBit(l1);
+
+  if (lsb0 === lsb1) {
+    let lastByte = l1[l1.byteLength - 1];
+    lastByte = lastByte ^= 1;
+    l1[l1.byteLength - 1] = lastByte;
+  }
+
+  return [l0.toString("hex"), l1.toString("hex")];
+}
 
 export function labelWires(
   gateName: GateName,
@@ -38,15 +67,9 @@ export function labelWires(
     return table;
   }, []);
 
-  const inputLabels = inNames.map(() => [
-    randomBytes(size / 8).toString("hex"),
-    randomBytes(size / 8).toString("hex"),
-  ]);
+  const inputLabels = inNames.map(() => generateLabelPair(size));
 
-  const outputLabels = [
-    randomBytes(size / 8).toString("hex"),
-    randomBytes(size / 8).toString("hex"),
-  ];
+  const outputLabels = generateLabelPair(size);
 
   const labels = inNames.reduce((labelsObj: Labels, name, i) => {
     labelsObj[name] = inputLabels[i];
@@ -76,22 +99,39 @@ export function labelWires(
   return { labels, labelledTable };
 }
 
-function getCombinedKey(labels: string[]): string {
+function getCombinedKey(labels: string[]): {
+  key: string;
+  label0lsb: Bit;
+  label1lsb: Bit;
+} {
   const hash = createHash("SHA3-256");
   for (const label of labels) {
     hash.update(label);
   }
-  return hash.digest("hex");
+
+  const label0lsb = getLeastSignificantBit(Buffer.from(labels[0], "hex"));
+  const label1lsb = getLeastSignificantBit(Buffer.from(labels[1], "hex"));
+
+  return { key: hash.digest("hex"), label0lsb, label1lsb };
 }
 
-function encrypt(key: string, data: string): EncryptedRow {
+function encrypt(
+  key: string,
+  data: string,
+  label0lsb: Bit,
+  label1lsb: Bit,
+): EncryptedRow {
   const iv = randomBytes(16);
   const cipher = createCipheriv("aes-256-gcm", Buffer.from(key, "hex"), iv);
-  const encrypted = cipher.update(data, "utf8");
+  let encrypted = cipher.update(data, "utf8");
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+
   return {
-    encrypted: Buffer.concat([encrypted, cipher.final()]),
+    encrypted,
     iv,
     tag: cipher.getAuthTag(),
+    label0lsb,
+    label1lsb,
   };
 }
 
@@ -113,8 +153,8 @@ export function garbleTable(labelledTable: LabelledTable): GarbledTable {
 
   for (const row of labelledTable) {
     const [inputLabels, outputLabel] = row as [string[], string];
-    const key = getCombinedKey(inputLabels);
-    const result = encrypt(key, outputLabel);
+    const { key, label0lsb, label1lsb } = getCombinedKey(inputLabels);
+    const result = encrypt(key, outputLabel, label0lsb, label1lsb);
     garbledTable.push(result);
   }
 
@@ -127,13 +167,14 @@ export function evalGarbledTable(
   garbledTable: GarbledTable,
   inputs: string[],
 ): string {
-  for (const row of garbledTable) {
-    const { encrypted, iv, tag } = row;
-    try {
-      const key = getCombinedKey(inputs);
-      return decrypt(key, iv, tag, encrypted);
-    } catch (e) {
-      continue;
-    }
-  }
+  const { key, label0lsb, label1lsb } = getCombinedKey(inputs);
+
+  const row = garbledTable.find(
+    (r) => r.label0lsb === label0lsb && r.label1lsb === label1lsb,
+  );
+
+  if (!row) throw new Error("Valid row not found in garbled table");
+
+  const { encrypted, iv, tag } = row;
+  return decrypt(key, iv, tag, encrypted);
 }
