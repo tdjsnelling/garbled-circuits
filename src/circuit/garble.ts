@@ -17,7 +17,7 @@ type EncryptedRow = {
   label0lsb: Bit;
   label1lsb: Bit;
 };
-type GarbledTable = EncryptedRow[];
+export type GarbledTable = EncryptedRow[];
 export type Circuit = { gate: GateName; inputs: string[]; output: string }[];
 export type NamedLabel = { [key: string]: string };
 
@@ -117,12 +117,14 @@ function labelWires(
   return { labels, labelledTable };
 }
 
-function getCombinedKey(labels: string[]): {
+export function getCombinedKey(labels: string[]): {
   key: string;
   label0lsb: Bit;
   label1lsb: Bit;
 } {
   const hash = createHash("SHA3-256");
+
+  labels.sort(); // sort labels so that the order we receive them in does not change the hash
   for (const label of labels) {
     hash.update(label);
   }
@@ -153,7 +155,7 @@ function encrypt(
   };
 }
 
-function decrypt(
+export function decrypt(
   key: string,
   iv: Buffer,
   tag: Buffer,
@@ -181,41 +183,6 @@ function garbleTable(labelledTable: LabelledTable): GarbledTable {
   return garbledTable;
 }
 
-function evalGarbledTable(
-  garbledTable: GarbledTable,
-  humanInputs: NamedLabel,
-  inputNames: string[],
-  circuitOutputs: NamedLabel[],
-): string {
-  const missingInputs = inputNames.filter(
-    (name) => !Object.keys(humanInputs).includes(name),
-  );
-
-  const circuitOutputLabels = missingInputs.reduce(
-    (outputs: NamedLabel, name) => {
-      const outputLabel = circuitOutputs.find((output) => !!output[name]);
-      if (outputLabel) outputs[name] = outputLabel[name];
-      return outputs;
-    },
-    {},
-  );
-
-  const inputs = { ...humanInputs, ...circuitOutputLabels };
-
-  console.log(`\t-> inputs:${JSON.stringify(inputs)}`);
-
-  const { key, label0lsb, label1lsb } = getCombinedKey(Object.values(inputs));
-
-  const row = garbledTable.find(
-    (r) => r.label0lsb === label0lsb && r.label1lsb === label1lsb,
-  );
-
-  if (!row) throw new Error("Valid row not found in garbled table");
-
-  const { encrypted, iv, tag } = row;
-  return decrypt(key, iv, tag, encrypted);
-}
-
 export function garbleCircuit(circuit: Circuit) {
   const labelledCircuit: Labels[] = [];
   const garbledCircuit = [];
@@ -235,33 +202,4 @@ export function garbleCircuit(circuit: Circuit) {
   }
 
   return { labelledCircuit, garbledCircuit };
-}
-
-export function evalGarbledCircuit(
-  garbledCircuit: GarbledTable[],
-  inputs: NamedLabel[],
-  circuit: Circuit,
-) {
-  const circuitOutputs: NamedLabel[] = [];
-
-  for (const i in garbledCircuit) {
-    console.log(`evaluate -> gate:${i}`);
-
-    const inputNames = circuit[i].inputs;
-    const outputName = circuit[i].output;
-
-    const garbledTable = garbledCircuit[i];
-    const result = evalGarbledTable(
-      garbledTable,
-      inputs[i],
-      inputNames,
-      circuitOutputs,
-    );
-
-    console.log(`\t-> result:${result}`);
-
-    circuitOutputs.push({ [outputName]: result });
-  }
-
-  return circuitOutputs;
 }

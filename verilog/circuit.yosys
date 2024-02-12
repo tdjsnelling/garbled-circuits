@@ -1,0 +1,21 @@
+# run with /path/to/yosys -s ./circuit.yosys
+
+# read design
+read_verilog circuit.v
+
+# main logic synthesis step
+synth
+
+# technology mapping step. tells yosys what gates our "platform" supports
+# we only have AND and NOT gate implemented, so tell abc this
+abc -g AND # 'NOT' is always automatically added
+
+# adjust the design so it only uses 1-bit wires
+splitnets -ports -format _
+
+# misc cleanup
+clean_zerowidth
+clean -purge
+
+# save lowered design
+write_verilog -simple-lhs -noattr out.v

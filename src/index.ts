@@ -1,14 +1,11 @@
 import { generateKeyPairSync } from "crypto";
+import fs from "fs";
 import * as ot from "./oblivious-transfer";
 import { getJwkInt } from "./utils";
-import {
-  garbleCircuit,
-  evalGarbledCircuit,
-  Labels,
-  Circuit,
-  NamedLabel,
-} from "./circuit/garble";
 import { InputValue } from "./circuit/gates";
+import { garbleCircuit, Labels, Circuit, NamedLabel } from "./circuit/garble";
+import { evalGarbledCircuit } from "./circuit/evaluate";
+import { parseVerilog } from "./verilog";
 
 type Inputs = { [key: string]: InputValue }[];
 
@@ -51,12 +48,8 @@ function doObliviousTransfer(
   return m.toString("utf-8");
 }
 
-// Alice has A and C, Bob has B
-// Both parties know the circuit configuration
-const circuit: Circuit = [
-  { gate: "and", inputs: ["A", "B"], output: "X" },
-  { gate: "and", inputs: ["C", "X"], output: "out" },
-];
+const verilog = fs.readFileSync("./verilog/out.v", "utf-8");
+const circuit = parseVerilog(verilog);
 
 // ALICE
 const {
