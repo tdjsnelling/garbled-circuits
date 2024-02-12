@@ -18,6 +18,7 @@ type EncryptedRow = {
   label1lsb: Bit;
 };
 type GarbledTable = EncryptedRow[];
+export type Circuit = { gate: GateName; inputs: string[]; output: string }[];
 
 const INPUT_VALUES: InputValue[] = [0, 1];
 
@@ -43,7 +44,7 @@ function generateLabelPair(size: number): string[] {
   return [l0.toString("hex"), l1.toString("hex")];
 }
 
-export function labelWires(
+function labelWires(
   gateName: GateName,
   inNames: string[],
   outName: string,
@@ -68,15 +69,19 @@ export function labelWires(
   }, []);
 
   const inputLabels = inNames.map(() => generateLabelPair(size));
-
-  const outputLabels = generateLabelPair(size);
-
   const labels = inNames.reduce((labelsObj: Labels, name, i) => {
     labelsObj[name] = inputLabels[i];
     return labelsObj;
   }, {});
 
+  const outputLabels = generateLabelPair(size);
   labels[outName] = outputLabels;
+
+  for (const [name, values] of Object.entries(labels)) {
+    for (const value in values) {
+      console.log(`label -> name:${name} label:${value}=${values[value]}`);
+    }
+  }
 
   const labelledTable = truthTable.map((outValue, i) => {
     const result = [];
@@ -148,7 +153,7 @@ function decrypt(
   return data;
 }
 
-export function garbleTable(labelledTable: LabelledTable): GarbledTable {
+function garbleTable(labelledTable: LabelledTable): GarbledTable {
   const garbledTable: GarbledTable = [];
 
   for (const row of labelledTable) {
@@ -163,7 +168,7 @@ export function garbleTable(labelledTable: LabelledTable): GarbledTable {
   return garbledTable;
 }
 
-export function evalGarbledTable(
+function evalGarbledTable(
   garbledTable: GarbledTable,
   inputs: string[],
 ): string {
@@ -177,4 +182,46 @@ export function evalGarbledTable(
 
   const { encrypted, iv, tag } = row;
   return decrypt(key, iv, tag, encrypted);
+}
+
+export function garbleCircuit(circuit: Circuit) {
+  const labelledCircuit: Labels[] = [];
+  const garbledCircuit = [];
+
+  for (const gateIndex in circuit) {
+    const gate = circuit[gateIndex];
+
+    console.log(
+      `garble -> gate:${gateIndex} type:${gate.gate} in:${gate.inputs} out:${gate.output}`,
+    );
+
+    const { labels, labelledTable } = labelWires(
+      gate.gate,
+      gate.inputs,
+      gate.output,
+    );
+
+    labelledCircuit.push(labels);
+    garbledCircuit.push(garbleTable(labelledTable));
+  }
+
+  return { labelledCircuit, garbledCircuit };
+}
+
+export function evalGarbledCircuit(
+  garbledCircuit: GarbledTable[],
+  inputs: string[][],
+) {
+  const results = [];
+
+  for (const i in garbledCircuit) {
+    const garbledTable = garbledCircuit[i];
+    const result = evalGarbledTable(garbledTable, inputs[i]);
+
+    console.log(`evaluate -> gate:${i} result:${result}`);
+
+    results.push(result);
+  }
+
+  return results;
 }

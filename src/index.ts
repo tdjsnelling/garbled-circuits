@@ -2,12 +2,12 @@ import { generateKeyPairSync } from "crypto";
 import * as ot from "./oblivious-transfer";
 import { getJwkInt } from "./utils";
 import {
-  labelWires,
-  garbleTable,
-  evalGarbledTable,
+  garbleCircuit,
+  evalGarbledCircuit,
   Labels,
+  Circuit,
 } from "./circuit/garble";
-import { GateName, InputValue } from "./circuit/gates";
+import { InputValue } from "./circuit/gates";
 
 type Inputs = { [key: string]: InputValue }[];
 
@@ -19,7 +19,9 @@ function doObliviousTransfer(
   inputName: string, // Bob
   inputValue: InputValue, // Bob
 ) {
-  console.log(`OT gate ${gateIndex} : ${inputName}=${inputValue}`);
+  console.log(
+    `oblivious transfer -> gate:${gateIndex} value:${inputName}=${inputValue}`,
+  );
   // ALICE
   const { publicKey, privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
@@ -48,62 +50,54 @@ function doObliviousTransfer(
   return m.toString("utf-8");
 }
 
-type Circuit = { gate: GateName; inputs: string[]; output: string }[];
-
 // Alice has A, Bob has B
 const circuit: Circuit = [{ gate: "and", inputs: ["A", "B"], output: "out" }];
 
-const allLabels: Labels[] = [];
-const garbledCircuit = []; // -> Alice will send to Bob
-
 // ALICE
-for (const gate of circuit) {
-  const { labels, labelledTable } = labelWires(
-    gate.gate,
-    gate.inputs,
-    gate.output,
-  );
-  allLabels.push(labels);
-  garbledCircuit.push(garbleTable(labelledTable));
-}
+const {
+  labelledCircuit,
+  garbledCircuit, // -> Alice will send to Bob
+} = garbleCircuit(circuit);
 
 const aliceInputs: Inputs = [{ A: 1 }];
 const aliceInputLabels = aliceInputs.map((values, i) =>
   values !== undefined
-    ? Object.entries(values).map(([name, input]) => allLabels[i][name][input])
+    ? Object.entries(values).map(
+        ([name, input]) => labelledCircuit[i][name][input],
+      )
     : undefined,
 );
+
+console.log(`alice inputs -> ${JSON.stringify(aliceInputs)}`);
+console.log(`alice input labels -> ${JSON.stringify(aliceInputLabels)}`);
 
 // BOB
 const bobInputs: Inputs = [{ B: 1 }];
 const bobInputLabels = bobInputs.map((values, i) =>
   values !== undefined
     ? Object.entries(values).map(([name, input]) =>
-        doObliviousTransfer(allLabels, i, name, input),
+        doObliviousTransfer(labelledCircuit, i, name, input),
       )
     : undefined,
 );
 
-const results = [];
+console.log(`bob inputs -> ${JSON.stringify(bobInputs)}`);
+console.log(`bob input labels -> ${JSON.stringify(bobInputLabels)}`);
 
 // garbledCircuit and aliceInputLabels received from Alice
 // bobInputLabels received from Alice via oblivious transfer
-for (const i in garbledCircuit) {
-  const index = Number(i);
-  const garbledTable = garbledCircuit[index];
-
-  // map input names to work out who has which input?
-  let inputs: string[] = [];
+const inputs = garbledCircuit.map((garbledTable, i) => {
+  let inputLabels: string[] = [];
   if (Array.isArray(aliceInputLabels[i]))
-    inputs = aliceInputLabels[i] as string[];
+    inputLabels = inputLabels.concat(aliceInputLabels[i] as string[]);
   if (Array.isArray(bobInputLabels[i]))
-    inputs = inputs.concat(bobInputLabels[i] as string[]);
-
-  results.push(evalGarbledTable(garbledTable, inputs)); // -> send to Alice
-}
+    inputLabels = inputLabels.concat(bobInputLabels[i] as string[]);
+  return inputLabels;
+});
+const results = evalGarbledCircuit(garbledCircuit, inputs); // -> Bob will send to Alice
 
 // ALICE
-const out = allLabels[allLabels.length - 1]["out"].indexOf(
+const out = labelledCircuit[labelledCircuit.length - 1]["out"].indexOf(
   results[results.length - 1],
 );
-console.log("=>", out); // -> Alice shares with Bob
+console.log(`=> out=${out}`); // -> Alice shares with Bob
