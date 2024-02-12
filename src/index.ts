@@ -94,7 +94,8 @@ const results = evalGarbledCircuit(garbledCircuit, inputs, circuit); // -> Bob w
 console.log("-> output", JSON.stringify(results));
 
 // ALICE
-const out = labelledCircuit[labelledCircuit.length - 1]["out"].indexOf(
-  results[results.length - 1]["out"],
-);
-console.log(`=> out=${out}`); // -> Alice shares with Bob
+const finalGate = circuit[circuit.length - 1];
+const out = labelledCircuit[labelledCircuit.length - 1][
+  finalGate.output
+].indexOf(results[results.length - 1][finalGate.output]);
+console.log(`=> ${finalGate.output}=${out}`); // -> Alice shares with Bob

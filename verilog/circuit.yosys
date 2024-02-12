@@ -1,4 +1,5 @@
-# run with /path/to/yosys -s ./circuit.yosys
+# run with: /path/to/yosys -s ./circuit.yosys
+# generate diagram with: netlistsvg netlist.json
 
 # read design
 read_verilog circuit.v
@@ -19,3 +20,6 @@ clean -purge
 
 # save lowered design
 write_verilog -simple-lhs -noattr out.v
+
+# save JSON netlist for visualisation
+write_json netlist.json

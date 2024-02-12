@@ -2,6 +2,7 @@
 
 module mycircuit(A, B, C, out);
   wire _0_;
+  wire _1_;
   input A;
   wire A;
   input B;
@@ -11,5 +12,6 @@ module mycircuit(A, B, C, out);
   output out;
   wire out;
   assign _0_ = B & A;
-  assign out = C & _0_;
+  assign _1_ = C & _0_;
+  assign out = ~_1_;
 endmodule

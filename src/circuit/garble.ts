@@ -15,7 +15,7 @@ type EncryptedRow = {
   iv: Buffer;
   tag: Buffer;
   label0lsb: Bit;
-  label1lsb: Bit;
+  label1lsb?: Bit;
 };
 export type GarbledTable = EncryptedRow[];
 export type Circuit = { gate: GateName; inputs: string[]; output: string }[];
@@ -106,7 +106,7 @@ function labelWires(
       );
     } else if (gate.length === 1) {
       const unaryInputValues = inputValues as InputValue[];
-      result.push(inputLabels[0][unaryInputValues[i]]);
+      result.push([inputLabels[0][unaryInputValues[i]]]);
     }
 
     result.push(outputLabels[outValue]);
@@ -120,7 +120,7 @@ function labelWires(
 export function getCombinedKey(labels: string[]): {
   key: string;
   label0lsb: Bit;
-  label1lsb: Bit;
+  label1lsb?: Bit;
 } {
   const hash = createHash("SHA3-256");
 
@@ -129,17 +129,20 @@ export function getCombinedKey(labels: string[]): {
     hash.update(label);
   }
 
-  const label0lsb = getLeastSignificantBit(Buffer.from(labels[0], "hex"));
-  const label1lsb = getLeastSignificantBit(Buffer.from(labels[1], "hex"));
-
-  return { key: hash.digest("hex"), label0lsb, label1lsb };
+  return {
+    key: hash.digest("hex"),
+    label0lsb: getLeastSignificantBit(Buffer.from(labels[0], "hex")),
+    label1lsb: labels[1]
+      ? getLeastSignificantBit(Buffer.from(labels[1], "hex"))
+      : undefined,
+  };
 }
 
 function encrypt(
   key: string,
   data: string,
   label0lsb: Bit,
-  label1lsb: Bit,
+  label1lsb?: Bit,
 ): EncryptedRow {
   const iv = randomBytes(16);
   const cipher = createCipheriv("aes-256-gcm", Buffer.from(key, "hex"), iv);
