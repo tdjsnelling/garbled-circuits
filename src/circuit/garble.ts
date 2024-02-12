@@ -8,7 +8,7 @@ import { gates, InputValue, GateName, Gate } from "./gates";
 import { cartesianProduct, secureShuffle } from "../utils";
 
 type Bit = InputValue;
-type Labels = { [key: string]: string[] };
+export type Labels = { [key: string]: string[] };
 type LabelledTable = (string | string[])[][];
 type EncryptedRow = {
   encrypted: Buffer;
