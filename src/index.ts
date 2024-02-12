@@ -6,12 +6,13 @@ import {
   evalGarbledCircuit,
   Labels,
   Circuit,
+  NamedLabel,
 } from "./circuit/garble";
 import { InputValue } from "./circuit/gates";
 
 type Inputs = { [key: string]: InputValue }[];
 
-// in practice this would be multiple steps as only Alice knows allLabels and
+// In practice this would be multiple steps as only Alice knows allLabels and
 // only Bob knows his input
 function doObliviousTransfer(
   allLabels: Labels[], // Alice
@@ -50,8 +51,12 @@ function doObliviousTransfer(
   return m.toString("utf-8");
 }
 
-// Alice has A, Bob has B
-const circuit: Circuit = [{ gate: "and", inputs: ["A", "B"], output: "out" }];
+// Alice has A and C, Bob has B
+// Both parties know the circuit configuration
+const circuit: Circuit = [
+  { gate: "and", inputs: ["A", "B"], output: "X" },
+  { gate: "and", inputs: ["C", "X"], output: "out" },
+];
 
 // ALICE
 const {
@@ -62,9 +67,10 @@ const {
 const aliceInputs: Inputs = [{ A: 1 }];
 const aliceInputLabels = aliceInputs.map((values, i) =>
   values !== undefined
-    ? Object.entries(values).map(
-        ([name, input]) => labelledCircuit[i][name][input],
-      )
+    ? Object.entries(values).reduce((inputs: NamedLabel, [name, value]) => {
+        inputs[name] = labelledCircuit[i][name][value];
+        return inputs;
+      }, {})
     : undefined,
 );
 
@@ -72,12 +78,13 @@ console.log(`alice inputs -> ${JSON.stringify(aliceInputs)}`);
 console.log(`alice input labels -> ${JSON.stringify(aliceInputLabels)}`);
 
 // BOB
-const bobInputs: Inputs = [{ B: 1 }];
+const bobInputs: Inputs = [{ B: 1 }, { C: 1 }];
 const bobInputLabels = bobInputs.map((values, i) =>
   values !== undefined
-    ? Object.entries(values).map(([name, input]) =>
-        doObliviousTransfer(labelledCircuit, i, name, input),
-      )
+    ? Object.entries(values).reduce((inputs: NamedLabel, [name, input]) => {
+        inputs[name] = doObliviousTransfer(labelledCircuit, i, name, input);
+        return inputs;
+      }, {})
     : undefined,
 );
 
@@ -87,17 +94,14 @@ console.log(`bob input labels -> ${JSON.stringify(bobInputLabels)}`);
 // garbledCircuit and aliceInputLabels received from Alice
 // bobInputLabels received from Alice via oblivious transfer
 const inputs = garbledCircuit.map((garbledTable, i) => {
-  let inputLabels: string[] = [];
-  if (Array.isArray(aliceInputLabels[i]))
-    inputLabels = inputLabels.concat(aliceInputLabels[i] as string[]);
-  if (Array.isArray(bobInputLabels[i]))
-    inputLabels = inputLabels.concat(bobInputLabels[i] as string[]);
-  return inputLabels;
+  return { ...(aliceInputLabels[i] ?? {}), ...(bobInputLabels[i] ?? {}) };
 });
-const results = evalGarbledCircuit(garbledCircuit, inputs); // -> Bob will send to Alice
+const results = evalGarbledCircuit(garbledCircuit, inputs, circuit); // -> Bob will send to Alice
+
+console.log("-> output", JSON.stringify(results));
 
 // ALICE
 const out = labelledCircuit[labelledCircuit.length - 1]["out"].indexOf(
-  results[results.length - 1],
+  results[results.length - 1]["out"],
 );
 console.log(`=> out=${out}`); // -> Alice shares with Bob
