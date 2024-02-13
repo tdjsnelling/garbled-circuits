@@ -9,7 +9,7 @@ synth
 
 # technology mapping step. tells yosys what gates our "platform" supports
 # we only have AND and NOT gate implemented, so tell abc this
-abc -g AND # 'NOT' is always automatically added
+abc -g gates # 'gates' is shorthand for AND,NAND,OR,NOR,XOR,XNOR,ANDNOT,ORNOT
 
 # adjust the design so it only uses 1-bit wires
 splitnets -ports -format _

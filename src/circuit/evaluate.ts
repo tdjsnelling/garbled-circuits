@@ -12,8 +12,13 @@ function evalGarbledTable(
   inputNames: string[],
   circuitOutputs: NamedLabel[],
 ): string {
+  const filteredHumanInputs = inputNames.reduce((inputs: NamedLabel, name) => {
+    if (humanInputs[name]) inputs[name] = humanInputs[name];
+    return inputs;
+  }, {});
+
   const missingInputs = inputNames.filter(
-    (name) => !Object.keys(humanInputs).includes(name),
+    (name) => !Object.keys(filteredHumanInputs).includes(name),
   );
 
   const circuitOutputLabels = missingInputs.reduce(
@@ -25,9 +30,9 @@ function evalGarbledTable(
     {},
   );
 
-  const inputs = { ...humanInputs, ...circuitOutputLabels };
+  const inputs = { ...filteredHumanInputs, ...circuitOutputLabels };
 
-  console.log(`\t-> inputs:${JSON.stringify(inputs)}`);
+  console.log(`\t-> inputs:${inputNames}:${JSON.stringify(inputs)}`);
 
   const { key, label0lsb, label1lsb } = getCombinedKey(Object.values(inputs));
 
@@ -43,7 +48,7 @@ function evalGarbledTable(
 
 export function evalGarbledCircuit(
   garbledCircuit: GarbledTable[],
-  inputs: NamedLabel[],
+  inputs: NamedLabel,
   circuit: Circuit,
 ) {
   const circuitOutputs: NamedLabel[] = [];
@@ -57,7 +62,7 @@ export function evalGarbledCircuit(
     const garbledTable = garbledCircuit[i];
     const result = evalGarbledTable(
       garbledTable,
-      inputs[i],
+      inputs,
       inputNames,
       circuitOutputs,
     );

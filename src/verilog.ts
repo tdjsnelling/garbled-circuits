@@ -1,4 +1,19 @@
 import { Circuit } from "./circuit/garble";
+import { GateName } from "./circuit/gates";
+
+const operationRegex: { [key in GateName]: RegExp } = {
+  not: /^~(?<in0>[a-z0-9_]+)$/i,
+  and: /^(?<in0>[a-z0-9_]+) & (?<in1>[a-z0-9_]+)$/i,
+  or: /^(?<in0>[a-z0-9_]+) \| (?<in1>[a-z0-9_]+)$/i,
+  xor: /^(?<in0>[a-z0-9_]+) \^ (?<in1>[a-z0-9_]+)$/i,
+  ornot: /^(?<in0>[a-z0-9_]+) \|~\((?<in1>[a-z0-9_]+)\)$/i,
+  andnot: /^(?<in0>[a-z0-9_]+) &~\((?<in1>[a-z0-9_]+)\)$/i,
+  nand: /^~\((?<in0>[a-z0-9_]+) & (?<in1>[a-z0-9_]+)\)$/i,
+  nor: /^~\((?<in0>[a-z0-9_]+) \| (?<in1>[a-z0-9_]+)\)$/i,
+  xnor: /^~\((?<in0>[a-z0-9_]+) \^ (?<in1>[a-z0-9_]+)\)$/i,
+  const_0: /^1'h0$/i,
+  const_1: /^1'h1$/i,
+};
 
 export function parseVerilog(input: string): Circuit {
   const lines = input.split(";").map((l) => l.trim());
@@ -24,28 +39,37 @@ export function parseVerilog(input: string): Circuit {
       outputs.push(tokens[0]);
     } else if (keyword === "assign") {
       const [target, , ...operation] = tokens;
+      const operationString = operation.join(" ");
 
-      console.log(target, operation);
+      for (const [gateName, regex] of Object.entries(operationRegex)) {
+        const match = operationString.match(regex);
+        if (!match) continue;
 
-      if (operation.length === 1 && operation[0].startsWith("~")) {
+        const inputs =
+          gateName === "const_0"
+            ? ["0"]
+            : gateName === "const_1"
+              ? ["1"]
+              : Object.values(match.groups ?? {});
+
         circuit.push({
-          gate: "not",
-          inputs: [operation[0].replace("~", "")],
+          gate: gateName as GateName,
+          inputs,
           output: target,
         });
-      } else if (operation[1] === "&") {
-        circuit.push({
-          gate: "and",
-          inputs: [operation[0], operation[2]],
-          output: target,
-        });
+
+        break;
       }
     } else if (keyword) {
       throw new Error(`Unrecognised keyword: ${keyword}`);
     }
   }
 
-  console.log(circuit);
+  for (const gate in circuit) {
+    console.log(
+      `parse verilog -> gate:${gate} ${JSON.stringify(circuit[gate])}`,
+    );
+  }
 
   return circuit;
 }

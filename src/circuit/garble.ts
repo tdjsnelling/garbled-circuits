@@ -122,6 +122,11 @@ export function getCombinedKey(labels: string[]): {
   label0lsb: Bit;
   label1lsb?: Bit;
 } {
+  const label0lsb = getLeastSignificantBit(Buffer.from(labels[0], "hex"));
+  const label1lsb = labels[1]
+    ? getLeastSignificantBit(Buffer.from(labels[1], "hex"))
+    : undefined;
+
   const hash = createHash("SHA3-256");
 
   labels.sort(); // sort labels so that the order we receive them in does not change the hash
@@ -131,10 +136,8 @@ export function getCombinedKey(labels: string[]): {
 
   return {
     key: hash.digest("hex"),
-    label0lsb: getLeastSignificantBit(Buffer.from(labels[0], "hex")),
-    label1lsb: labels[1]
-      ? getLeastSignificantBit(Buffer.from(labels[1], "hex"))
-      : undefined,
+    label0lsb,
+    label1lsb,
   };
 }
 
