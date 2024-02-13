@@ -4,15 +4,17 @@ import * as ot from "./oblivious-transfer";
 import { getJwkInt } from "./utils";
 import { InputValue } from "./circuit/gates";
 import { garbleCircuit, Labels, NamedLabel } from "./circuit/garble";
-import { evalGarbledCircuit } from "./circuit/evaluate";
+import {
+  evalGarbledCircuit,
+  resolveOutputLabels,
+  NamedInputOutput,
+} from "./circuit/evaluate";
 import { parseVerilog } from "./verilog";
 
-type Inputs = { [key: string]: InputValue };
-
-// In practice this would be multiple steps as only Alice knows allLabels and
-// only Bob knows his input
+// In practice this would be multiple steps as only Alice knows labelledCircuit
+// and only Bob knows his input
 function doObliviousTransfer(
-  flattenedLabels: Labels, // Alice
+  labelledCircuit: Labels, // Alice
   inputName: string, // Bob
   inputValue: InputValue, // Bob
 ) {
@@ -26,8 +28,8 @@ function doObliviousTransfer(
   const pubkey = publicKey.export({ format: "jwk" });
   const privkey = privateKey.export({ format: "jwk" });
 
-  const m0 = Buffer.from(flattenedLabels[inputName][0], "utf-8");
-  const m1 = Buffer.from(flattenedLabels[inputName][1], "utf-8");
+  const m0 = Buffer.from(labelledCircuit[inputName][0], "utf-8");
+  const m1 = Buffer.from(labelledCircuit[inputName][1], "utf-8");
 
   const e = getJwkInt(pubkey.e as string);
   const N = getJwkInt(pubkey.n as string);
@@ -48,8 +50,7 @@ function doObliviousTransfer(
 
 // Both parties are aware of circuit configuration
 const verilog = fs.readFileSync("./verilog/out.v", "utf-8");
-const circuit = parseVerilog(verilog);
-const outputNames = ["sum_0", "sum_1", "sum_2", "sum_3", "C_out"];
+const { circuit, outputNames } = parseVerilog(verilog);
 
 // ALICE
 const {
@@ -57,7 +58,13 @@ const {
   garbledCircuit, // -> Alice will send to Bob
 } = garbleCircuit(circuit);
 
-const aliceInputs: Inputs = { A_0: 1, A_1: 0, A_2: 0, A_3: 0, C_in: 0 };
+const aliceInputs: NamedInputOutput = {
+  A_0: 1,
+  A_1: 0,
+  A_2: 0,
+  A_3: 0,
+  C_in: 0,
+};
 const aliceInputLabels = Object.entries(aliceInputs).reduce(
   (inputs: NamedLabel, [name, value]) => {
     inputs[name] = labelledCircuit[name][value];
@@ -70,7 +77,7 @@ console.log(`alice inputs -> ${JSON.stringify(aliceInputs)}`);
 console.log(`alice input labels -> ${JSON.stringify(aliceInputLabels)}`);
 
 // BOB
-const bobInputs: Inputs = { B_0: 1, B_1: 0, B_2: 0, B_3: 0 };
+const bobInputs: NamedInputOutput = { B_0: 1, B_1: 0, B_2: 0, B_3: 0 };
 const bobInputLabels = Object.entries(bobInputs).reduce(
   (inputs: NamedLabel, [name, value]) => {
     inputs[name] = doObliviousTransfer(labelledCircuit, name, value);
@@ -84,14 +91,14 @@ console.log(`bob input labels -> ${JSON.stringify(bobInputLabels)}`);
 
 // garbledCircuit and aliceInputLabels received from Alice
 // bobInputLabels received from Alice via oblivious transfer
-const inputs = { ...aliceInputLabels, ...bobInputLabels };
-const outputs = evalGarbledCircuit(garbledCircuit, inputs, circuit); // -> Bob will send to Alice
+const outputLabels = evalGarbledCircuit(
+  garbledCircuit,
+  { ...aliceInputLabels, ...bobInputLabels },
+  circuit,
+); // -> Bob will send to Alice
 
-console.log("-> output", JSON.stringify(outputs));
+console.log("output labels ->", JSON.stringify(outputLabels));
 
 // ALICE
-for (const outputName of outputNames) {
-  const outputLabel = outputs[outputName];
-  const outputValue = labelledCircuit[outputName].indexOf(outputLabel);
-  console.log(`=> ${outputName}=${outputValue}`); // -> Alice shares with Bob
-}
+const outputs = resolveOutputLabels(outputLabels, outputNames, labelledCircuit);
+console.log(`output => ${JSON.stringify(outputs)}`); // -> Alice shares with Bob

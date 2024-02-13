@@ -15,12 +15,13 @@ const operationRegex: { [key in GateName]: RegExp } = {
   const_1: /^1'h1$/i,
 };
 
-export function parseVerilog(input: string): Circuit {
+export function parseVerilog(input: string): {
+  circuit: Circuit;
+  outputNames: string[];
+} {
   const lines = input.split(";").map((l) => l.trim());
 
-  const wires = [];
-  const inputs = [];
-  const outputs = [];
+  const outputNames: string[] = [];
 
   const circuit: Circuit = [];
 
@@ -29,14 +30,15 @@ export function parseVerilog(input: string): Circuit {
     line = line.replaceAll(/\/\/(.*)/g, "");
     const [keyword, ...tokens] = line.split(" ").map((tok) => tok.trim());
 
-    if (keyword === "module" || keyword === "endmodule") {
+    if (
+      keyword === "module" ||
+      keyword === "endmodule" ||
+      keyword === "wire" ||
+      keyword === "input"
+    ) {
       continue;
-    } else if (keyword === "wire") {
-      wires.push(tokens[0]);
-    } else if (keyword === "input") {
-      inputs.push(tokens[0]);
     } else if (keyword === "output") {
-      outputs.push(tokens[0]);
+      outputNames.push(tokens[0]);
     } else if (keyword === "assign") {
       const [target, , ...operation] = tokens;
       const operationString = operation.join(" ");
@@ -71,5 +73,5 @@ export function parseVerilog(input: string): Circuit {
     );
   }
 
-  return circuit;
+  return { circuit, outputNames };
 }

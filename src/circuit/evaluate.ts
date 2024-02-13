@@ -4,7 +4,11 @@ import {
   GarbledTable,
   Circuit,
   NamedLabel,
+  Labels,
 } from "./garble";
+import { InputValue } from "./gates";
+
+export type NamedInputOutput = { [key: string]: InputValue };
 
 function evalGarbledTable(
   garbledTable: GarbledTable,
@@ -31,7 +35,7 @@ function evalGarbledTable(
 
   const inputs = { ...filteredHumanInputs, ...circuitOutputLabels };
 
-  console.log(`\t-> inputs:${inputNames}:${JSON.stringify(inputs)}`);
+  console.log(`\t-> inputs:${JSON.stringify(inputs)}`);
 
   const { key, label0lsb, label1lsb } = getCombinedKey(Object.values(inputs));
 
@@ -49,7 +53,7 @@ export function evalGarbledCircuit(
   garbledCircuit: GarbledTable[],
   inputs: NamedLabel,
   circuit: Circuit,
-) {
+): NamedLabel {
   const circuitOutputs: NamedLabel = {};
 
   for (const i in garbledCircuit) {
@@ -72,4 +76,21 @@ export function evalGarbledCircuit(
   }
 
   return circuitOutputs;
+}
+
+export function resolveOutputLabels(
+  outputLabels: NamedLabel,
+  outputNames: string[],
+  labelledCircuit: Labels,
+): NamedInputOutput {
+  const outputs: NamedInputOutput = {};
+
+  for (const outputName of outputNames) {
+    const outputLabel = outputLabels[outputName];
+    outputs[outputName] = labelledCircuit[outputName].indexOf(
+      outputLabel,
+    ) as InputValue;
+  }
+
+  return outputs;
 }
