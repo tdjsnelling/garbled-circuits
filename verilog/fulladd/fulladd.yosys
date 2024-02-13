@@ -1,8 +1,8 @@
-# run with: /path/to/yosys -s ./circuit.yosys
+# run with: /path/to/yosys -s ./fulladd.yosys
 # generate diagram with: netlistsvg netlist.json
 
 # read design
-read_verilog circuit.v
+read_verilog fulladd.v
 
 # main logic synthesis step
 synth

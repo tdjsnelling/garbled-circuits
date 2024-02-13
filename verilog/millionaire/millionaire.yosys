@@ -1,0 +1,25 @@
+# run with: /path/to/yosys -s ./millionaire.yosys
+# generate diagram with: netlistsvg netlist.json
+
+# read design
+read_verilog millionaire.v
+
+# main logic synthesis step
+synth
+
+# technology mapping step. tells yosys what gates our "platform" supports
+# we only have AND and NOT gate implemented, so tell abc this
+abc -g gates # 'gates' is shorthand for AND,NAND,OR,NOR,XOR,XNOR,ANDNOT,ORNOT
+
+# adjust the design so it only uses 1-bit wires
+splitnets -ports -format _
+
+# misc cleanup
+clean_zerowidth
+clean -purge
+
+# save lowered design
+write_verilog -simple-lhs -noattr out.v
+
+# save JSON netlist for visualisation
+write_json netlist.json

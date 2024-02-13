@@ -9,7 +9,7 @@
   "private": false,
   "scripts": {
     "build": "tsc",
-    "dev": "concurrently --kill-others \"yarn build --watch\" \"nodemon --enable-source-maps dist/index.js\"",
+    "dev": "concurrently --passthrough-arguments --kill-others \"yarn build --watch\" \"nodemon --enable-source-maps dist/index.js {1}\"",
     "start": "node dist/index.js"
   },
   "devDependencies": {

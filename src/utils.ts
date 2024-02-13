@@ -1,4 +1,5 @@
 import { getRandomValues } from "crypto";
+import { Bit } from "./circuit/garble";
 
 export function bufferToBigInt(buffer: Buffer): bigint {
   return BigInt("0x" + buffer.toString("hex"));
@@ -25,4 +26,13 @@ export function secureShuffle(array: unknown[]) {
     array[i] = array[j];
     array[j] = temp;
   }
+}
+
+export function getNthBit(number: number, n: number): Bit {
+  return (number & (1 << n)) > 0 ? 1 : 0;
+}
+
+export function getLeastSignificantBit(buffer: Buffer): Bit {
+  const lastByte = buffer[buffer.byteLength - 1];
+  return getNthBit(lastByte, 0) as Bit;
 }

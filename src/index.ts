@@ -1,7 +1,8 @@
 import { generateKeyPairSync } from "crypto";
 import fs from "fs";
+import path from "path";
 import * as ot from "./oblivious-transfer";
-import { getJwkInt } from "./utils";
+import { getJwkInt, getNthBit } from "./utils";
 import { InputValue } from "./circuit/gates";
 import { garbleCircuit, Labels, NamedLabel } from "./circuit/garble";
 import {
@@ -48,8 +49,10 @@ function doObliviousTransfer(
   return m.toString("utf-8");
 }
 
+const [, , verilogFile] = process.argv;
+
 // Both parties are aware of circuit configuration
-const verilog = fs.readFileSync("./verilog/out.v", "utf-8");
+const verilog = fs.readFileSync(path.resolve(verilogFile), "utf-8");
 const { circuit, outputNames } = parseVerilog(verilog);
 
 // ALICE
@@ -58,13 +61,12 @@ const {
   garbledCircuit, // -> Alice will send to Bob
 } = garbleCircuit(circuit);
 
-const aliceInputs: NamedInputOutput = {
-  A_0: 1,
-  A_1: 0,
-  A_2: 0,
-  A_3: 0,
-  C_in: 0,
-};
+const aliceWealth = 2e6;
+const aliceInputs: NamedInputOutput = {};
+for (let i = 0; i < 32; i++) {
+  aliceInputs[`A_${i}`] = getNthBit(aliceWealth, i);
+}
+
 const aliceInputLabels = Object.entries(aliceInputs).reduce(
   (inputs: NamedLabel, [name, value]) => {
     inputs[name] = labelledCircuit[name][value];
@@ -77,7 +79,12 @@ console.log(`alice inputs -> ${JSON.stringify(aliceInputs)}`);
 console.log(`alice input labels -> ${JSON.stringify(aliceInputLabels)}`);
 
 // BOB
-const bobInputs: NamedInputOutput = { B_0: 1, B_1: 0, B_2: 0, B_3: 0 };
+const bobWealth = 1e6;
+const bobInputs: NamedInputOutput = {};
+for (let i = 0; i < 32; i++) {
+  bobInputs[`B_${i}`] = getNthBit(bobWealth, i);
+}
+
 const bobInputLabels = Object.entries(bobInputs).reduce(
   (inputs: NamedLabel, [name, value]) => {
     inputs[name] = doObliviousTransfer(labelledCircuit, name, value);

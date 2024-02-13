@@ -3,7 +3,7 @@
   "modules": {
     "fulladd": {
       "attributes": {
-        "src": "circuit.v:1.1-9.10"
+        "src": "fulladd.v:1.1-9.10"
       },
       "ports": {
         "A_0": {
@@ -529,7 +529,7 @@
           "hide_name": 0,
           "bits": [ 2 ],
           "attributes": {
-            "src": "circuit.v:2.15-2.16"
+            "src": "fulladd.v:2.15-2.16"
           }
         },
         "A_1": {
@@ -537,7 +537,7 @@
           "bits": [ 3 ],
           "offset": 1,
           "attributes": {
-            "src": "circuit.v:2.15-2.16"
+            "src": "fulladd.v:2.15-2.16"
           }
         },
         "A_2": {
@@ -545,7 +545,7 @@
           "bits": [ 4 ],
           "offset": 2,
           "attributes": {
-            "src": "circuit.v:2.15-2.16"
+            "src": "fulladd.v:2.15-2.16"
           }
         },
         "A_3": {
@@ -553,14 +553,14 @@
           "bits": [ 5 ],
           "offset": 3,
           "attributes": {
-            "src": "circuit.v:2.15-2.16"
+            "src": "fulladd.v:2.15-2.16"
           }
         },
         "B_0": {
           "hide_name": 0,
           "bits": [ 6 ],
           "attributes": {
-            "src": "circuit.v:3.15-3.16"
+            "src": "fulladd.v:3.15-3.16"
           }
         },
         "B_1": {
@@ -568,7 +568,7 @@
           "bits": [ 7 ],
           "offset": 1,
           "attributes": {
-            "src": "circuit.v:3.15-3.16"
+            "src": "fulladd.v:3.15-3.16"
           }
         },
         "B_2": {
@@ -576,7 +576,7 @@
           "bits": [ 8 ],
           "offset": 2,
           "attributes": {
-            "src": "circuit.v:3.15-3.16"
+            "src": "fulladd.v:3.15-3.16"
           }
         },
         "B_3": {
@@ -584,28 +584,28 @@
           "bits": [ 9 ],
           "offset": 3,
           "attributes": {
-            "src": "circuit.v:3.15-3.16"
+            "src": "fulladd.v:3.15-3.16"
           }
         },
         "C_in": {
           "hide_name": 0,
           "bits": [ 10 ],
           "attributes": {
-            "src": "circuit.v:4.9-4.13"
+            "src": "fulladd.v:4.9-4.13"
           }
         },
         "C_out": {
           "hide_name": 0,
           "bits": [ 11 ],
           "attributes": {
-            "src": "circuit.v:5.10-5.15"
+            "src": "fulladd.v:5.10-5.15"
           }
         },
         "sum_0": {
           "hide_name": 0,
           "bits": [ 12 ],
           "attributes": {
-            "src": "circuit.v:6.16-6.19"
+            "src": "fulladd.v:6.16-6.19"
           }
         },
         "sum_1": {
@@ -613,7 +613,7 @@
           "bits": [ 13 ],
           "offset": 1,
           "attributes": {
-            "src": "circuit.v:6.16-6.19"
+            "src": "fulladd.v:6.16-6.19"
           }
         },
         "sum_2": {
@@ -621,7 +621,7 @@
           "bits": [ 14 ],
           "offset": 2,
           "attributes": {
-            "src": "circuit.v:6.16-6.19"
+            "src": "fulladd.v:6.16-6.19"
           }
         },
         "sum_3": {
@@ -629,7 +629,7 @@
           "bits": [ 15 ],
           "offset": 3,
           "attributes": {
-            "src": "circuit.v:6.16-6.19"
+            "src": "fulladd.v:6.16-6.19"
           }
         }
       }

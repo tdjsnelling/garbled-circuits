@@ -5,9 +5,13 @@ import {
   createDecipheriv,
 } from "crypto";
 import { gates, InputValue, GateName, Gate } from "./gates";
-import { cartesianProduct, secureShuffle } from "../utils";
+import {
+  cartesianProduct,
+  secureShuffle,
+  getLeastSignificantBit,
+} from "../utils";
 
-type Bit = InputValue;
+export type Bit = InputValue;
 export type Labels = { [key: string]: string[] };
 type LabelledTable = (string | string[])[][];
 type EncryptedRow = {
@@ -22,11 +26,6 @@ export type Circuit = { gate: GateName; inputs: string[]; output: string }[];
 export type NamedLabel = { [key: string]: string };
 
 const INPUT_VALUES: InputValue[] = [0, 1];
-
-function getLeastSignificantBit(buffer: Buffer, index = 0): Bit {
-  const lastByte = buffer[buffer.byteLength - 1];
-  return ((lastByte >> index) & 1) as Bit;
-}
 
 // generate 2 random labels with different LSBs
 function generateLabelPair(size: number): string[] {
