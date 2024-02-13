@@ -3,7 +3,7 @@ import fs from "fs";
 import * as ot from "./oblivious-transfer";
 import { getJwkInt } from "./utils";
 import { InputValue } from "./circuit/gates";
-import { garbleCircuit, Labels, Circuit, NamedLabel } from "./circuit/garble";
+import { garbleCircuit, Labels, NamedLabel } from "./circuit/garble";
 import { evalGarbledCircuit } from "./circuit/evaluate";
 import { parseVerilog } from "./verilog";
 
@@ -17,6 +17,7 @@ function doObliviousTransfer(
   inputValue: InputValue, // Bob
 ) {
   console.log(`oblivious transfer -> value:${inputName}=${inputValue}`);
+
   // ALICE
   const { publicKey, privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
@@ -56,15 +57,10 @@ const {
   garbledCircuit, // -> Alice will send to Bob
 } = garbleCircuit(circuit);
 
-const flattenedLabels = labelledCircuit.reduce((allLabels, gateLabels) => {
-  Object.assign(allLabels, gateLabels);
-  return allLabels;
-}, {});
-
 const aliceInputs: Inputs = { A_0: 1, A_1: 0, A_2: 0, A_3: 0, C_in: 0 };
 const aliceInputLabels = Object.entries(aliceInputs).reduce(
   (inputs: NamedLabel, [name, value]) => {
-    inputs[name] = flattenedLabels[name][value];
+    inputs[name] = labelledCircuit[name][value];
     return inputs;
   },
   {},
@@ -77,7 +73,7 @@ console.log(`alice input labels -> ${JSON.stringify(aliceInputLabels)}`);
 const bobInputs: Inputs = { B_0: 1, B_1: 0, B_2: 0, B_3: 0 };
 const bobInputLabels = Object.entries(bobInputs).reduce(
   (inputs: NamedLabel, [name, value]) => {
-    inputs[name] = doObliviousTransfer(flattenedLabels, name, value);
+    inputs[name] = doObliviousTransfer(labelledCircuit, name, value);
     return inputs;
   },
   {},
@@ -90,16 +86,12 @@ console.log(`bob input labels -> ${JSON.stringify(bobInputLabels)}`);
 // bobInputLabels received from Alice via oblivious transfer
 const inputs = { ...aliceInputLabels, ...bobInputLabels };
 const outputs = evalGarbledCircuit(garbledCircuit, inputs, circuit); // -> Bob will send to Alice
-const flattenedOutputs = outputs.reduce((allOutputs, gateOutputs) => {
-  Object.assign(allOutputs, gateOutputs);
-  return allOutputs;
-}, {});
 
-console.log("-> output", JSON.stringify(flattenedOutputs));
+console.log("-> output", JSON.stringify(outputs));
 
 // ALICE
 for (const outputName of outputNames) {
-  const outputLabel = flattenedOutputs[outputName];
-  const outputValue = flattenedLabels[outputName].indexOf(outputLabel);
+  const outputLabel = outputs[outputName];
+  const outputValue = labelledCircuit[outputName].indexOf(outputLabel);
   console.log(`=> ${outputName}=${outputValue}`); // -> Alice shares with Bob
 }

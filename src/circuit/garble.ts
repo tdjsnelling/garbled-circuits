@@ -50,7 +50,7 @@ function labelWires(
   inNames: string[],
   outName: string,
   gateIndex: number,
-  labelledCircuit: Labels[],
+  labelledCircuit: Labels,
   size: number = 256,
 ): { labels: Labels; labelledTable: LabelledTable } {
   console.log(
@@ -75,11 +75,9 @@ function labelWires(
     return table;
   }, []);
 
-  const prevGates = labelledCircuit.slice(0, gateIndex);
-
   const inputLabels = inNames.map((name) => {
-    const prevOutputGate = prevGates.find((labels) => !!labels[name]);
-    if (prevOutputGate) return prevOutputGate[name];
+    //const prevOutputGate = prevGates.find((labels) => !!labels[name]);
+    if (labelledCircuit[name]) return labelledCircuit[name];
     return generateLabelPair(size);
   });
   const labels = inNames.reduce((labelsObj: Labels, name, i) => {
@@ -190,7 +188,7 @@ function garbleTable(labelledTable: LabelledTable): GarbledTable {
 }
 
 export function garbleCircuit(circuit: Circuit) {
-  const labelledCircuit: Labels[] = [];
+  let labelledCircuit: Labels = {};
   const garbledCircuit = [];
 
   for (const gateIndex in circuit) {
@@ -203,7 +201,7 @@ export function garbleCircuit(circuit: Circuit) {
       labelledCircuit,
     );
 
-    labelledCircuit.push(labels);
+    labelledCircuit = Object.assign(labelledCircuit, labels);
     garbledCircuit.push(garbleTable(labelledTable));
   }
 
