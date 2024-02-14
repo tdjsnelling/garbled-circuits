@@ -67,15 +67,18 @@ function labelWires(
       const binaryInput = input as InputValue[];
       table.push(gate[binaryInput[0]][binaryInput[1]]);
     } else if (gate.length === 1) {
-      const unaryInput = input as InputValue;
-      table.push(gate[0][unaryInput]);
+      if (gate[0].length === 2) {
+        const unaryInput = input as InputValue;
+        table.push(gate[0][unaryInput]);
+      } else if (gate[0].length === 1) {
+        table.push(gate[0][0]);
+      }
     }
 
     return table;
   }, []);
 
   const inputLabels = inNames.map((name) => {
-    //const prevOutputGate = prevGates.find((labels) => !!labels[name]);
     if (labelledCircuit[name]) return labelledCircuit[name];
     return generateLabelPair(size);
   });
